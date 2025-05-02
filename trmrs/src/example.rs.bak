@@ -1,0 +1,169 @@
+use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
+
+use embedded_graphics::{
+    mono_font::MonoTextStyleBuilder,
+    pixelcolor::BinaryColor::On as Black,
+    pixelcolor::BinaryColor::{self, Off as White},
+    prelude::*,
+    primitives::{Circle, Line, PrimitiveStyleBuilder},
+    text::{Baseline, Text, TextStyleBuilder},
+};
+use epd_waveshare::{epd2in9_v2::*, graphics::DisplayRotation, prelude::*};
+use esp_idf_hal::delay::Ets;
+use esp_idf_hal::gpio::*;
+use esp_idf_hal::spi::{config::Config, SpiDeviceDriver};
+use esp_idf_hal::{peripherals::Peripherals, spi::SpiDriverConfig};
+
+// This is a remake of the example from epd_waveshare (https://github.com/caemor/epd-waveshare/blob/main/examples/epd4in2.rs).
+// The idea behind this is to make the example work with Wokwi simulated e-paper module (and to make the example clearer for newbies).
+fn main() -> anyhow::Result<()> {
+    // It is necessary to call this function once. Otherwise some patches to the runtime
+    // implemented by esp-idf-sys might not link properly. See https://github.com/esp-rs/esp-idf-template/issues/71
+    esp_idf_sys::link_patches();
+    // Bind the log crate to the ESP Logging facilities
+    esp_idf_svc::log::EspLogger::initialize_default();
+
+    let peripherals = Peripherals::take().unwrap();
+    let spi = peripherals.spi2;
+    let sclk = peripherals.pins.gpio18;
+    let serial_out = peripherals.pins.gpio23; // SDO
+    let cs = PinDriver::output(peripherals.pins.gpio5)?;
+    let busy_in = PinDriver::input(peripherals.pins.gpio4)?;
+    let dc = PinDriver::output(peripherals.pins.gpio22)?;
+    let rst = PinDriver::output(peripherals.pins.gpio21)?;
+
+    let config = Config::new().baudrate(112500.into());
+    let mut device = SpiDeviceDriver::new_single(
+        spi,
+        sclk,
+        serial_out,
+        Option::<Gpio2>::None,
+        Option::<AnyIOPin>::None,
+        &SpiDriverConfig::default(),
+        &config,
+    )?;
+
+    // We cannot use the general purpose Delay struct from esp_idf_hal since it's only implemented for u16 and u32, whereas Epd2in9 uses u8
+    // TODO PR a generic Delay struct (or simply add u8 etc...)
+    let mut delay = Ets;
+
+    // Setup EPD
+    let mut epd = Epd2in9::new(&mut device, cs, busy_in, dc, rst, &mut delay)?;
+    println!("Init done!");
+
+    let mut display = Display2in9::default();
+
+    println!("Drawing rotated text...");
+    display.set_rotation(DisplayRotation::Rotate0);
+    draw_text(&mut display, "Rotate 0!", 5, 50);
+
+    display.set_rotation(DisplayRotation::Rotate90);
+    draw_text(&mut display, "Rotate 90!", 5, 50);
+
+    display.set_rotation(DisplayRotation::Rotate180);
+    draw_text(&mut display, "Rotate 180!", 5, 50);
+
+    display.set_rotation(DisplayRotation::Rotate270);
+    draw_text(&mut display, "Rotate 270!", 5, 50);
+
+    epd.update_frame(&mut device, display.buffer(), &mut delay)?;
+    epd.display_frame(&mut device, &mut delay)
+        .expect("display frame new graphics");
+    // This delay (along with others) isn't really needed since the display refresh itself takes quite a long time, but it works as an example
+    Ets::delay_ms(1000);
+
+    println!("Clearing display and resetting rotation...");
+    display.set_rotation(DisplayRotation::Rotate0);
+    display.clear(BinaryColor::Off)?;
+    epd.update_frame(&mut device, display.buffer(), &mut delay)?;
+    epd.display_frame(&mut device, &mut delay)?;
+    println!("Cleared!");
+
+    println!("Draw an analog clock...");
+    let style = PrimitiveStyleBuilder::new()
+        .stroke_color(BinaryColor::On)
+        .stroke_width(1)
+        .build();
+
+    // The X refers to the smaller side of the display (with the origin on the bottom of the diagram), the Y to the bigger side (with the origin to the left)
+    let _ = Circle::with_center(Point::new(64, 64), 80)
+        .into_styled(style)
+        .draw(&mut display);
+    let _ = Line::new(Point::new(64, 64), Point::new(25, 64))
+        .into_styled(style)
+        .draw(&mut display);
+    let _ = Line::new(Point::new(64, 64), Point::new(80, 80))
+        .into_styled(style)
+        .draw(&mut display);
+    epd.update_frame(&mut device, display.buffer(), &mut delay)?;
+    epd.display_frame(&mut device, &mut delay)?;
+    println!("Drew a clock!");
+
+    Ets::delay_ms(1000);
+    display.clear(BinaryColor::Off)?;
+
+    println!("Showing some text with custom styling...");
+    // Origin is now top left
+    display.set_rotation(DisplayRotation::Rotate90);
+    let style = MonoTextStyleBuilder::new()
+        .font(&embedded_graphics::mono_font::ascii::FONT_6X10)
+        .text_color(BinaryColor::Off)
+        .background_color(BinaryColor::On)
+        .build();
+    let text_style = TextStyleBuilder::new().baseline(Baseline::Top).build();
+
+    let _ = Text::with_text_style("It's working-WoB1!", Point::new(0, 0), style, text_style)
+        .draw(&mut display);
+
+    // use bigger/different font
+    let style = MonoTextStyleBuilder::new()
+        .font(&embedded_graphics::mono_font::ascii::FONT_10X20)
+        .text_color(BinaryColor::Off)
+        .background_color(BinaryColor::On)
+        .build();
+
+    let _ = Text::with_text_style("It's working-WoB2!", Point::new(50, 20), style, text_style)
+        .draw(&mut display);
+
+    epd.update_frame(&mut device, display.buffer(), &mut delay)?;
+    epd.display_frame(&mut device, &mut delay)?;
+    println!("Text shown!");
+
+    println!("Showing an animated Hello World text, moving from left to right...");
+    // For unknown reasons, if the display is cleared while the rotation is different than 0, such as 90, only half the screen clears.
+    display.set_rotation(DisplayRotation::Rotate0);
+    display.clear(BinaryColor::Off)?;
+    display.set_rotation(DisplayRotation::Rotate90);
+
+    let limit = 10;
+    epd.set_lut(&mut device, Some(RefreshLut::Quick))?;
+
+    println!("Starting animation..");
+    for i in 0..limit {
+        println!("Moving Hello World. Loop {} from {}", (i + 1), limit);
+
+        draw_text(&mut display, "  Hello World! ", 5 + i * 12, 50);
+
+        epd.update_frame(&mut device, display.buffer(), &mut delay)?;
+        epd.display_frame(&mut device, &mut delay)?;
+
+        Ets::delay_ms(20);
+    }
+
+    println!("Finished tests - going to sleep");
+    epd.sleep(&mut device, &mut delay)?;
+
+    Ok(())
+}
+
+fn draw_text(display: &mut Display2in9, text: &str, x: i32, y: i32) {
+    let style = MonoTextStyleBuilder::new()
+        .font(&embedded_graphics::mono_font::ascii::FONT_6X10)
+        .text_color(White)
+        .background_color(Black)
+        .build();
+
+    let text_style = TextStyleBuilder::new().baseline(Baseline::Top).build();
+
+    let _ = Text::with_text_style(text, Point::new(x, y), style, text_style).draw(display);
+}
