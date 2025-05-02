@@ -1,7 +1,7 @@
 use embedded_graphics::{
     pixelcolor::BinaryColor,
     prelude::*,
-    primitives::{PrimitiveStyleBuilder, Rectangle},
+    primitives::{Line, PrimitiveStyleBuilder, Rectangle},
 };
 use epd_waveshare::{color::Color, epd7in5_v2::*, graphics::DisplayRotation, prelude::*};
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
@@ -74,12 +74,6 @@ fn main() -> anyhow::Result<()> {
     let mut epd = Epd7in5::new(&mut spi_driver, busy, dc, rst, &mut delay, Option::None)?;
     log::info!("E-paper display initialized");
 
-    // Create the display buffer
-    let mut display = Display7in5::default();
-
-    // Set rotation and clear the display to white
-    display.set_rotation(DisplayRotation::Rotate0);
-
     // Clear display (white background)
     log::info!("Clearing display");
     epd.clear_frame(&mut spi_driver, &mut delay)?;
@@ -89,22 +83,39 @@ fn main() -> anyhow::Result<()> {
     log::info!("Displaying frame");
     epd.display_frame(&mut spi_driver, &mut delay)?;
 
+    // Create a buffer for the display (800x480 bits)
+    let mut buffer = vec![0u8; (800 * 480) / 8];
+
+    // Fill buffer with noise
+    for byte in &mut buffer {
+        *byte = rand::random::<u8>();
+    }
+
+    epd.update_and_display_frame(&mut spi_driver, &buffer, &mut delay)?;
     thread::sleep(Duration::from_millis(1000));
 
-    // Create a simple filled rectangle
-    // log::info!("Drawing rectangle");
+    // Create the display buffer
+    let mut display = Display7in5::default();
 
-    // // Create a style compatible with the display's color type
-    // let style = PrimitiveStyleBuilder::new()
-    //     .fill_color(Color::Black)
-    //     .build();
+    // // Set rotation and clear the display to white
+    // display.set_rotation(DisplayRotation::Rotate0);
 
-    // Rectangle::new(Point::new(200, 100), Size::new(400, 200))
-    //     .into_styled(style)
-    //     .draw(&mut display)?;
+    // // Fill the entire display with white
+    // // let fill_result = display.fill_solid(
+    // //     &Rectangle::new(Point::new(0, 0), Size::new(800, 480)),
+    // //     Color::White,
+    // // );
+    // // log::info!("Fill background result: {:?}", fill_result);
 
-    // Update the display with the rectangle
-    // log::info!("Updating display with rectangle");
+    // // Add a small black rectangle in the center
+    // let rect_result = display.fill_solid(
+    //     &Rectangle::new(Point::new(50, 50), Size::new(100, 100)),
+    //     Color::Black,
+    // );
+    // log::info!("Draw rectangle result: {:?}", rect_result);
+
+    // Update the display to show the pixel
+    // log::info!("Updating frame with display buffer");
     // epd.update_frame(&mut spi_driver, display.buffer(), &mut delay)?;
     // epd.display_frame(&mut spi_driver, &mut delay)?;
 
