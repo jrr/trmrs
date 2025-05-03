@@ -132,6 +132,13 @@ fn main() -> anyhow::Result<()> {
             // With pull-up resistor: 0 = pressed, 1 = released
             if level == 0 {
                 log::info!("Button press");
+            } else {
+                // Button released - calculate duration
+                let press_time = BUTTON_PRESS_TIME.load(Ordering::SeqCst);
+                let now = unsafe { (esp_idf_sys::esp_timer_get_time() / 1000) as i32 }; // Convert microseconds to milliseconds
+                let duration = now - press_time; // Safe even with wrap-around due to two's complement
+
+                log::info!("Button release ({}ms)", duration);
 
                 if show_ferris {
                     log::info!("Displaying Ferris");
@@ -145,13 +152,6 @@ fn main() -> anyhow::Result<()> {
                 show_ferris = !show_ferris;
 
                 epd.update_and_display_frame(&mut spi_driver, &buffer, &mut delay)?;
-            } else {
-                // Button released - calculate duration
-                let press_time = BUTTON_PRESS_TIME.load(Ordering::SeqCst);
-                let now = unsafe { (esp_idf_sys::esp_timer_get_time() / 1000) as i32 }; // Convert microseconds to milliseconds
-                let duration = now - press_time; // Safe even with wrap-around due to two's complement
-
-                log::info!("Button release ({}ms)", duration);
             }
         }
     }
