@@ -115,7 +115,7 @@ fn main() -> anyhow::Result<()> {
     // was having trouble with this:
     // let mut display = Display7in5::default();
 
-    let mut show_ferris: bool = false;
+    let mut show_ferris: bool = true;
 
     log::info!("Starting main loop");
     loop {
