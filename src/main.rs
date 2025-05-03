@@ -15,6 +15,7 @@ const PIN_BUTTON: i32 = 2; // Default button pin on TRMNL board
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 static BUTTON_EVENT_OCCURRED: AtomicBool = AtomicBool::new(false);
 static BUTTON_PRESS_TIME: AtomicI32 = AtomicI32::new(0);
+static LAST_ACTIVITY_TIME: AtomicI32 = AtomicI32::new(0);
 
 const FERRIS_PNG: &[u8] = include_bytes!("../ferris-floyd.png");
 
@@ -34,6 +35,11 @@ fn main() -> anyhow::Result<()> {
 
     log::info!("Starting e-paper display test");
     log::info!("Embedded PNG size: {} bytes", FERRIS_PNG.len());
+
+    // Initialize last activity time to current time (in milliseconds)
+    let now = unsafe { (esp_idf_sys::esp_timer_get_time() / 1000) as i32 };
+    LAST_ACTIVITY_TIME.store(now, Ordering::SeqCst);
+
     thread::sleep(Duration::from_millis(500));
 
     // Step 1: Get peripherals
@@ -77,7 +83,7 @@ fn main() -> anyhow::Result<()> {
     let rst = PinDriver::output(peripherals.pins.gpio10)?;
     let dc = PinDriver::output(peripherals.pins.gpio5)?;
     let busy = PinDriver::input(peripherals.pins.gpio4)?;
-    // let cs = PinDriver::output(peripherals.pins.gpio6)?;
+    let _cs = PinDriver::output(peripherals.pins.gpio6)?;
 
     log::info!("SPI pins initialized");
 
@@ -122,12 +128,36 @@ fn main() -> anyhow::Result<()> {
     let mut show_ferris: bool = true;
 
     log::info!("Starting main loop");
+    let inactivity_timeout = 60_000; // 60 seconds in milliseconds
+
     loop {
         thread::sleep(Duration::from_millis(200));
+
+        // Check for inactivity timeout
+        let current_time = unsafe { (esp_idf_sys::esp_timer_get_time() / 1000) as i32 };
+        let last_activity = LAST_ACTIVITY_TIME.load(Ordering::SeqCst);
+        let idle_time = current_time.wrapping_sub(last_activity); // Handle potential wraparound
+
+        if idle_time > inactivity_timeout {
+            log::info!("Shutting down due to inactivity ({}s)", idle_time / 1_000);
+
+            // Sleep the display instead of clearing it
+            log::info!("Putting display to sleep");
+            epd.sleep(&mut spi_driver, &mut delay)?;
+
+            // Go into deep sleep or power off
+            log::info!("Going to deep sleep now");
+            unsafe {
+                esp_idf_sys::esp_deep_sleep_start();
+            }
+        }
 
         // Check if a button event occurred
         if BUTTON_EVENT_OCCURRED.load(Ordering::SeqCst) {
             BUTTON_EVENT_OCCURRED.store(false, Ordering::SeqCst);
+
+            // Update last activity time (current_time is already in milliseconds)
+            LAST_ACTIVITY_TIME.store(current_time, Ordering::SeqCst);
 
             let level = unsafe { esp_idf_sys::gpio_get_level(PIN_BUTTON) };
 
