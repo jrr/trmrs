@@ -40,8 +40,6 @@ fn main() -> anyhow::Result<()> {
     let now = unsafe { (esp_idf_sys::esp_timer_get_time() / 1000) as i32 };
     LAST_ACTIVITY_TIME.store(now, Ordering::SeqCst);
 
-    thread::sleep(Duration::from_millis(500));
-
     // Step 1: Get peripherals
     log::info!("Initializing peripherals");
     let peripherals = Peripherals::take().unwrap();
@@ -110,9 +108,9 @@ fn main() -> anyhow::Result<()> {
     let mut epd = Epd7in5::new(&mut spi_driver, busy, dc, rst, &mut delay, Option::None)?;
     log::info!("E-paper display initialized");
 
-    thread::sleep(Duration::from_millis(500));
+    thread::sleep(Duration::from_millis(100));
     epd.clear_frame(&mut spi_driver, &mut delay)?;
-    thread::sleep(Duration::from_millis(500));
+    thread::sleep(Duration::from_millis(100));
 
     // Create a buffer for the display (800x480 bits)
     let mut buffer = vec![0u8; (800 * 480) / 8];
