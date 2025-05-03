@@ -20,6 +20,12 @@ use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering};
 static BUTTON_EVENT_OCCURRED: AtomicBool = AtomicBool::new(false);
 static BUTTON_PRESS_TIME: AtomicI32 = AtomicI32::new(0);
 
+fn draw_random_noise(buffer: &mut [u8]) {
+    for byte in buffer {
+        *byte = rand::random::<u8>();
+    }
+}
+
 fn main() -> anyhow::Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
     // implemented by esp-idf-sys might not link properly. See https://github.com/esp-rs/esp-idf-template/issues/71
@@ -102,9 +108,7 @@ fn main() -> anyhow::Result<()> {
     // Create a buffer for the display (800x480 bits)
     let mut buffer = vec![0u8; (800 * 480) / 8];
 
-    for byte in &mut buffer {
-        *byte = rand::random::<u8>();
-    }
+    draw_random_noise(&mut buffer);
 
     epd.update_and_display_frame(&mut spi_driver, &buffer, &mut delay)?;
 
@@ -126,6 +130,10 @@ fn main() -> anyhow::Result<()> {
             // With pull-up resistor: 0 = pressed, 1 = released
             if level == 0 {
                 log::info!("Button press");
+
+                // Draw new random pattern on button press
+                draw_random_noise(&mut buffer);
+                epd.update_and_display_frame(&mut spi_driver, &buffer, &mut delay)?;
             } else {
                 // Button released - calculate duration
                 let press_time = BUTTON_PRESS_TIME.load(Ordering::SeqCst);
