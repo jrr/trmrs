@@ -5,8 +5,11 @@ use embedded_graphics::{
 };
 use epd_waveshare::{color::Color, epd7in5_v2::*, graphics::DisplayRotation, prelude::*};
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
+use std::io::Cursor;
 use std::thread;
 use std::time::Duration;
+
+const FERRIS_FLOYD_PNG: &[u8] = include_bytes!("../ferris-floyd.png");
 
 // ESP-IDF imports
 use esp_idf_hal::delay::Ets;
@@ -26,6 +29,63 @@ fn draw_random_noise(buffer: &mut [u8]) {
     }
 }
 
+fn decode_and_center_png(buffer: &mut [u8]) -> anyhow::Result<()> {
+    const SCREEN_WIDTH: u32 = 800;
+    const SCREEN_HEIGHT: u32 = 480;
+
+    buffer.fill(0x00);
+
+    let decoder = png::Decoder::new(Cursor::new(FERRIS_FLOYD_PNG));
+    let mut reader = decoder.read_info()?;
+
+    let info = reader.info();
+    let width = info.width;
+    let height = info.height;
+    log::info!("PNG info: {:?}", info);
+
+    let x_offset = (SCREEN_WIDTH - width) / 2;
+    let y_offset = (SCREEN_HEIGHT - height) / 2;
+
+    log::info!("Centering PNG at offset ({}, {})", x_offset, y_offset);
+
+    let mut img_data = vec![0; reader.output_buffer_size()];
+
+    let frame = reader.next_frame(&mut img_data)?;
+
+    let bytes_per_row = (width + 7) / 8;
+
+    for y in 0..frame.height {
+        for byte_x in 0..bytes_per_row {
+            let src_idx = y as usize * bytes_per_row as usize + byte_x as usize;
+            if src_idx >= img_data.len() {
+                continue;
+            }
+            let src_byte = img_data[src_idx];
+
+            // In 1-bit grayscale, 0 = black, 1 = white
+            // For e-ink display: 0 = white, 1 = black, so we need to invert
+            let mut display_byte = !src_byte; // Invert the bits
+
+            // Handle the right edge (last byte in row) where we might need to mask out padding bits
+            if byte_x == bytes_per_row - 1 && width % 8 != 0 {
+                let padding_bits = 8 - (width % 8);
+                let mask = 0xFF << padding_bits;
+                display_byte &= mask;
+            }
+
+            let dest_y = (y_offset + y) as usize;
+            let dest_x_byte = ((x_offset / 8) + byte_x) as usize;
+            let dest_idx = dest_y * (SCREEN_WIDTH / 8) as usize + dest_x_byte;
+
+            if dest_idx < buffer.len() {
+                buffer[dest_idx] = display_byte;
+            }
+        }
+    }
+
+    Ok(())
+}
+
 fn main() -> anyhow::Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
     // implemented by esp-idf-sys might not link properly. See https://github.com/esp-rs/esp-idf-template/issues/71
@@ -35,6 +95,7 @@ fn main() -> anyhow::Result<()> {
     esp_idf_svc::log::EspLogger::initialize_default();
 
     log::info!("Starting e-paper display test");
+    log::info!("Embedded PNG size: {} bytes", FERRIS_FLOYD_PNG.len());
     thread::sleep(Duration::from_millis(500));
 
     // Step 1: Get peripherals
@@ -108,6 +169,7 @@ fn main() -> anyhow::Result<()> {
     // Create a buffer for the display (800x480 bits)
     let mut buffer = vec![0u8; (800 * 480) / 8];
 
+    // Draw random noise initially
     draw_random_noise(&mut buffer);
 
     epd.update_and_display_frame(&mut spi_driver, &buffer, &mut delay)?;
@@ -131,8 +193,19 @@ fn main() -> anyhow::Result<()> {
             if level == 0 {
                 log::info!("Button press");
 
-                // Draw new random pattern on button press
-                draw_random_noise(&mut buffer);
+                // Toggle between random noise and Ferris image
+                static SHOW_FERRIS: AtomicBool = AtomicBool::new(false);
+                let show_ferris = !SHOW_FERRIS.load(Ordering::SeqCst);
+                SHOW_FERRIS.store(show_ferris, Ordering::SeqCst);
+
+                if show_ferris {
+                    log::info!("Displaying Ferris image");
+                    decode_and_center_png(&mut buffer)?;
+                } else {
+                    log::info!("Displaying random noise");
+                    draw_random_noise(&mut buffer);
+                }
+
                 epd.update_and_display_frame(&mut spi_driver, &buffer, &mut delay)?;
             } else {
                 // Button released - calculate duration

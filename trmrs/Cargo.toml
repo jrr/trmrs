@@ -30,6 +30,7 @@ esp-idf-sys = "0.36.1"
 embedded-graphics = "0.8.1"
 anyhow = "1.0.98"
 rand = "0.8.5"
+png = "0.17.16"
 
 [build-dependencies]
 embuild = "0.33"
