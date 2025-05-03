@@ -11,6 +11,8 @@ use esp_idf_hal::prelude::*;
 use esp_idf_hal::spi::{config::Config, SpiDeviceDriver, SpiDriverConfig};
 
 const PIN_BUTTON: i32 = 2;
+const SCREEN_WIDTH: u32 = 800;
+const SCREEN_HEIGHT: u32 = 480;
 
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 static BUTTON_EVENT_OCCURRED: AtomicBool = AtomicBool::new(false);
@@ -100,7 +102,7 @@ fn main() -> anyhow::Result<()> {
     epd.clear_frame(&mut spi_driver, &mut delay)?;
     thread::sleep(Duration::from_millis(100));
 
-    let mut buffer = vec![0u8; (800 * 480) / 8];
+    let mut buffer = vec![0u8; ((SCREEN_WIDTH * SCREEN_HEIGHT) / 8) as usize];
 
     draw_random_noise(&mut buffer);
 
@@ -154,7 +156,12 @@ fn main() -> anyhow::Result<()> {
 
                 if show_ferris {
                     log::info!("Displaying Ferris");
-                    png::decode_and_center_png(&mut buffer, FERRIS_PNG)?;
+                    png::decode_and_center_png(
+                        &mut buffer,
+                        FERRIS_PNG,
+                        SCREEN_WIDTH,
+                        SCREEN_HEIGHT,
+                    )?;
                 } else {
                     log::info!("Displaying random noise");
                     draw_random_noise(&mut buffer);

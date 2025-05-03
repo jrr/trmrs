@@ -1,11 +1,13 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use std::io::Cursor;
 
 /// Decodes a 1-bit grayscale PNG and centers it on the display buffer
-pub fn decode_and_center_png(buffer: &mut [u8], png_data: &[u8]) -> Result<()> {
-    const SCREEN_WIDTH: u32 = 800;
-    const SCREEN_HEIGHT: u32 = 480;
-
+pub fn decode_and_center_png(
+    buffer: &mut [u8],
+    png_data: &[u8],
+    screen_width: u32,
+    screen_height: u32,
+) -> Result<()> {
     buffer.fill(0x00);
 
     let decoder = png::Decoder::new(Cursor::new(png_data));
@@ -16,8 +18,13 @@ pub fn decode_and_center_png(buffer: &mut [u8], png_data: &[u8]) -> Result<()> {
     let height = info.height;
     log::info!("PNG info: {info:?}");
 
-    let x_offset = (SCREEN_WIDTH - width) / 2;
-    let y_offset = (SCREEN_HEIGHT - height) / 2;
+    // Check if image exceeds screen dimensions
+    if width > screen_width || height > screen_height {
+        bail!("Image dimensions ({width}x{height}) exceed screen dimensions ({screen_width}x{screen_height})");
+    }
+
+    let x_offset = (screen_width - width) / 2;
+    let y_offset = (screen_height - height) / 2;
 
     log::info!("Centering PNG at offset ({x_offset}, {y_offset})");
 
@@ -55,7 +62,7 @@ pub fn decode_and_center_png(buffer: &mut [u8], png_data: &[u8]) -> Result<()> {
 
             let dest_y = (y_offset + y) as usize;
             let dest_x_byte = ((x_offset / 8) + byte_x) as usize;
-            let dest_idx = dest_y * (SCREEN_WIDTH / 8) as usize + dest_x_byte;
+            let dest_idx = dest_y * (screen_width / 8) as usize + dest_x_byte;
 
             if dest_idx < buffer.len() {
                 buffer[dest_idx] = display_byte;
