@@ -104,6 +104,10 @@ fn main() -> anyhow::Result<()> {
     let mut epd = Epd7in5::new(&mut spi_driver, busy, dc, rst, &mut delay, Option::None)?;
     log::info!("E-paper display initialized");
 
+    thread::sleep(Duration::from_millis(500));
+    epd.clear_frame(&mut spi_driver, &mut delay)?;
+    thread::sleep(Duration::from_millis(500));
+
     // Create a buffer for the display (800x480 bits)
     let mut buffer = vec![0u8; (800 * 480) / 8];
 
