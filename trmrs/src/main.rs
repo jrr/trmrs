@@ -14,6 +14,12 @@ use esp_idf_hal::gpio::*;
 use esp_idf_hal::prelude::*;
 use esp_idf_hal::spi::{config::Config, SpiDeviceDriver, SpiDriverConfig};
 
+const PIN_BUTTON: i32 = 2; // Default button pin on TRMNL board
+
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering};
+static BUTTON_EVENT_OCCURRED: AtomicBool = AtomicBool::new(false);
+static BUTTON_PRESS_TIME: AtomicI32 = AtomicI32::new(0);
+
 fn main() -> anyhow::Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
     // implemented by esp-idf-sys might not link properly. See https://github.com/esp-rs/esp-idf-template/issues/71
@@ -32,6 +38,30 @@ fn main() -> anyhow::Result<()> {
 
     // Step 2: Initialize SPI pins for display
     log::info!("Initializing SPI pins");
+    log::info!("Initializing button on GPIO{}", PIN_BUTTON);
+
+    let mut button_pin = PinDriver::input(peripherals.pins.gpio2)?;
+    button_pin.set_pull(Pull::Up)?;
+
+    button_pin.set_interrupt_type(InterruptType::AnyEdge)?;
+
+    let button_interrupt = move || {
+        let level = unsafe { esp_idf_sys::gpio_get_level(PIN_BUTTON) };
+
+        let now = unsafe { (esp_idf_sys::esp_timer_get_time() / 1000) as i32 };
+
+        if level == 0 {
+            BUTTON_PRESS_TIME.store(now, Ordering::SeqCst);
+        }
+
+        BUTTON_EVENT_OCCURRED.store(true, Ordering::SeqCst);
+    };
+
+    unsafe {
+        button_pin.subscribe(button_interrupt)?;
+    }
+
+    button_pin.enable_interrupt()?;
 
     // Extract pins for SPI and display control
     let spi = peripherals.spi2;
@@ -83,8 +113,27 @@ fn main() -> anyhow::Result<()> {
 
     log::info!("Starting main loop");
     loop {
-        thread::sleep(Duration::from_millis(1000));
-        counter += 1;
-        log::info!("Loop count: {}", counter);
+        thread::sleep(Duration::from_millis(200));
+
+        // Check if a button event occurred
+        if BUTTON_EVENT_OCCURRED.load(Ordering::SeqCst) {
+            BUTTON_EVENT_OCCURRED.store(false, Ordering::SeqCst);
+
+            let level = unsafe { esp_idf_sys::gpio_get_level(PIN_BUTTON) };
+
+            button_pin.enable_interrupt()?;
+
+            // With pull-up resistor: 0 = pressed, 1 = released
+            if level == 0 {
+                log::info!("Button press");
+            } else {
+                // Button released - calculate duration
+                let press_time = BUTTON_PRESS_TIME.load(Ordering::SeqCst);
+                let now = unsafe { (esp_idf_sys::esp_timer_get_time() / 1000) as i32 }; // Convert microseconds to milliseconds
+                let duration = now - press_time; // Safe even with wrap-around due to two's complement
+
+                log::info!("Button release ({}ms)", duration);
+            }
+        }
     }
 }
