@@ -5,7 +5,7 @@ use std::time::Duration;
 
 mod png;
 
-use esp_idf_hal::delay::Ets;
+use esp_idf_hal::delay::Delay;
 use esp_idf_hal::gpio::*;
 use esp_idf_hal::prelude::*;
 use esp_idf_hal::spi::{config::Config, SpiDeviceDriver, SpiDriverConfig};
@@ -103,7 +103,7 @@ fn main() -> anyhow::Result<()> {
 
     log::info!("SPI driver created successfully");
 
-    let mut delay = Ets;
+    let mut delay = Delay::new_default();
 
     let mut epd = Epd7in5::new(&mut spi_driver, busy, dc, rst, &mut delay, Option::None)?;
     log::info!("E-paper display initialized");
