@@ -18,13 +18,13 @@ pub fn decode_and_center_png(buffer: &mut [u8], png_data: &[u8]) -> Result<()> {
     let info = reader.info();
     let width = info.width;
     let height = info.height;
-    log::info!("PNG info: {:?}", info);
+    log::info!("PNG info: {info:?}");
 
     // Calculate centering offsets
     let x_offset = (SCREEN_WIDTH - width) / 2;
     let y_offset = (SCREEN_HEIGHT - height) / 2;
 
-    log::info!("Centering PNG at offset ({}, {})", x_offset, y_offset);
+    log::info!("Centering PNG at offset ({x_offset}, {y_offset})");
 
     // Create buffer for the image data
     let mut img_data = vec![0; reader.output_buffer_size()];
@@ -38,7 +38,7 @@ pub fn decode_and_center_png(buffer: &mut [u8], png_data: &[u8]) -> Result<()> {
 
     // For 1-bit grayscale PNG, we need to map the bits correctly
     // For a 1-bit PNG, each byte contains 8 pixels
-    let bytes_per_row = (width + 7) / 8;
+    let bytes_per_row = width.div_ceil(8);
 
     for y in 0..frame.height {
         for byte_x in 0..bytes_per_row {
@@ -75,6 +75,6 @@ pub fn decode_and_center_png(buffer: &mut [u8], png_data: &[u8]) -> Result<()> {
         }
     }
 
-    log::info!("Processed {} bytes from PNG", total_bytes);
+    log::info!("Processed {total_bytes} bytes from PNG");
     Ok(())
 }

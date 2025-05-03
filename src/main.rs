@@ -43,7 +43,7 @@ fn main() -> anyhow::Result<()> {
 
     // Step 2: Initialize SPI pins for display
     log::info!("Initializing SPI pins");
-    log::info!("Initializing button on GPIO{}", PIN_BUTTON);
+    log::info!("Initializing button on GPIO{PIN_BUTTON}");
 
     let mut button_pin = PinDriver::input(peripherals.pins.gpio2)?;
     button_pin.set_pull(Pull::Up)?;
@@ -142,7 +142,7 @@ fn main() -> anyhow::Result<()> {
                 let now = unsafe { (esp_idf_sys::esp_timer_get_time() / 1000) as i32 }; // Convert microseconds to milliseconds
                 let duration = now - press_time; // Safe even with wrap-around due to two's complement
 
-                log::info!("Button release ({}ms)", duration);
+                log::info!("Button release ({duration}ms)");
 
                 if show_ferris {
                     log::info!("Displaying Ferris");
