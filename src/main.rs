@@ -10,7 +10,7 @@ use esp_idf_hal::gpio::*;
 use esp_idf_hal::prelude::*;
 use esp_idf_hal::spi::{config::Config, SpiDeviceDriver, SpiDriverConfig};
 
-const PIN_BUTTON: i32 = 2; // Default button pin on TRMNL board
+const PIN_BUTTON: i32 = 2;
 
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 static BUTTON_EVENT_OCCURRED: AtomicBool = AtomicBool::new(false);
@@ -36,18 +36,10 @@ fn main() -> anyhow::Result<()> {
     log::info!("Starting e-paper display test");
     log::info!("Embedded PNG size: {} bytes", FERRIS_PNG.len());
 
-    // Initialize last activity time to current time (in milliseconds)
     let now = unsafe { (esp_idf_sys::esp_timer_get_time() / 1000) as i32 };
     LAST_ACTIVITY_TIME.store(now, Ordering::SeqCst);
 
-    // Step 1: Get peripherals
-    log::info!("Initializing peripherals");
     let peripherals = Peripherals::take().unwrap();
-    log::info!("Peripherals initialized");
-
-    // Step 2: Initialize SPI pins for display
-    log::info!("Initializing SPI pins");
-    log::info!("Initializing button on GPIO{PIN_BUTTON}");
 
     let mut button_pin = PinDriver::input(peripherals.pins.gpio2)?;
     button_pin.set_pull(Pull::Up)?;
@@ -72,12 +64,10 @@ fn main() -> anyhow::Result<()> {
 
     button_pin.enable_interrupt()?;
 
-    // Extract pins for SPI and display control
     let spi = peripherals.spi2;
     let sclk = peripherals.pins.gpio7;
     let mosi = peripherals.pins.gpio8;
 
-    // Create pin drivers for display control
     let rst = PinDriver::output(peripherals.pins.gpio10)?;
     let dc = PinDriver::output(peripherals.pins.gpio5)?;
     let busy = PinDriver::input(peripherals.pins.gpio4)?;
@@ -85,18 +75,16 @@ fn main() -> anyhow::Result<()> {
 
     log::info!("SPI pins initialized");
 
-    // Configure SPI
     log::info!("Configuring SPI");
-    let config = Config::new().baudrate(4_000_000.into()); // 4MHz to be safer
+    let config = Config::new().baudrate(4_000_000.into());
 
-    // Create SPI driver
     log::info!("Creating SPI driver");
     let mut spi_driver = SpiDeviceDriver::new_single(
         spi,
         sclk,
         mosi,
-        Option::<Gpio0>::None,    // No MISO needed
-        Option::<AnyIOPin>::None, // CS is handled manually
+        Option::<Gpio0>::None,
+        Option::<AnyIOPin>::None,
         &SpiDriverConfig::new(),
         &config,
     )?;
@@ -112,10 +100,8 @@ fn main() -> anyhow::Result<()> {
     epd.clear_frame(&mut spi_driver, &mut delay)?;
     thread::sleep(Duration::from_millis(100));
 
-    // Create a buffer for the display (800x480 bits)
     let mut buffer = vec![0u8; (800 * 480) / 8];
 
-    // Draw random noise initially
     draw_random_noise(&mut buffer);
 
     epd.update_and_display_frame(&mut spi_driver, &buffer, &mut delay)?;
@@ -126,35 +112,30 @@ fn main() -> anyhow::Result<()> {
     let mut show_ferris: bool = true;
 
     log::info!("Starting main loop");
-    let inactivity_timeout = 60_000; // 60 seconds in milliseconds
+    let inactivity_timeout = 60_000;
 
     loop {
         thread::sleep(Duration::from_millis(200));
 
-        // Check for inactivity timeout
         let current_time = unsafe { (esp_idf_sys::esp_timer_get_time() / 1000) as i32 };
         let last_activity = LAST_ACTIVITY_TIME.load(Ordering::SeqCst);
-        let idle_time = current_time.wrapping_sub(last_activity); // Handle potential wraparound
+        let idle_time = current_time.wrapping_sub(last_activity);
 
         if idle_time > inactivity_timeout {
             log::info!("Shutting down due to inactivity ({}s)", idle_time / 1_000);
 
-            // Sleep the display instead of clearing it
             log::info!("Putting display to sleep");
             epd.sleep(&mut spi_driver, &mut delay)?;
 
-            // Go into deep sleep or power off
             log::info!("Going to deep sleep now");
             unsafe {
                 esp_idf_sys::esp_deep_sleep_start();
             }
         }
 
-        // Check if a button event occurred
         if BUTTON_EVENT_OCCURRED.load(Ordering::SeqCst) {
             BUTTON_EVENT_OCCURRED.store(false, Ordering::SeqCst);
 
-            // Update last activity time (current_time is already in milliseconds)
             LAST_ACTIVITY_TIME.store(current_time, Ordering::SeqCst);
 
             let level = unsafe { esp_idf_sys::gpio_get_level(PIN_BUTTON) };
@@ -165,10 +146,9 @@ fn main() -> anyhow::Result<()> {
             if level == 0 {
                 log::info!("Button press");
             } else {
-                // Button released - calculate duration
                 let press_time = BUTTON_PRESS_TIME.load(Ordering::SeqCst);
-                let now = unsafe { (esp_idf_sys::esp_timer_get_time() / 1000) as i32 }; // Convert microseconds to milliseconds
-                let duration = now - press_time; // Safe even with wrap-around due to two's complement
+                let now = unsafe { (esp_idf_sys::esp_timer_get_time() / 1000) as i32 };
+                let duration = now - press_time;
 
                 log::info!("Button release ({duration}ms)");
 
@@ -180,7 +160,6 @@ fn main() -> anyhow::Result<()> {
                     draw_random_noise(&mut buffer);
                 }
 
-                // Toggle between random noise and Ferris image
                 show_ferris = !show_ferris;
 
                 epd.update_and_display_frame(&mut spi_driver, &buffer, &mut delay)?;
