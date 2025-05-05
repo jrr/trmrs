@@ -19,7 +19,7 @@ jobs:
         uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: nightly
-          components: rust-src rustfmt clippy
+          components: rust-src rustfmt clippy llvm-tools
 
       - name: Enable caching
         uses: Swatinem/rust-cache@v2
@@ -27,14 +27,26 @@ jobs:
       - name: Install ldproxy
         run: cargo install ldproxy
 
+      - name: Install cargo-binutils
+        run: cargo install cargo-binutils
+
       - name: cargo install
         run: cargo install --path .
 
       - name: build
         run: cargo build --release
 
+      - name: report binary size
+        run: |
+          cargo size --release > size_report.txt
+          echo "## Size Report" >> $GITHUB_STEP_SUMMARY
+          echo \`\`\` >> $GITHUB_STEP_SUMMARY
+          cat size_report.txt >> $GITHUB_STEP_SUMMARY
+          echo \`\`\` >> $GITHUB_STEP_SUMMARY
+          cat size_report.txt
+
       - name: format
         run: cargo fmt --all -- --check --color always
 
       - name: lint
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --no-deps -- -D warnings
