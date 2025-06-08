@@ -20,11 +20,37 @@ static BUTTON_PRESS_TIME: AtomicI32 = AtomicI32::new(0);
 static LAST_ACTIVITY_TIME: AtomicI32 = AtomicI32::new(0);
 
 const FERRIS_PNG: &[u8] = include_bytes!("../ferris-floyd.png");
+const HEXAGONS_PNG: &[u8] = include_bytes!("../hexagons.png");
+
+#[derive(Debug, Clone)]
+enum Scene {
+    Ferris,
+    Hexagons,
+    RandomNoise,
+}
 
 fn draw_random_noise(buffer: &mut [u8]) {
     for byte in buffer {
         *byte = rand::random::<u8>();
     }
+}
+
+fn render_scene(scene: &Scene, buffer: &mut [u8]) -> anyhow::Result<()> {
+    match scene {
+        Scene::Ferris => {
+            log::info!("Displaying Ferris");
+            png::decode_and_center_png(buffer, FERRIS_PNG, SCREEN_WIDTH, SCREEN_HEIGHT)?;
+        }
+        Scene::Hexagons => {
+            log::info!("Displaying Hexagons");
+            png::decode_and_center_png(buffer, HEXAGONS_PNG, SCREEN_WIDTH, SCREEN_HEIGHT)?;
+        }
+        Scene::RandomNoise => {
+            log::info!("Displaying random noise");
+            draw_random_noise(buffer);
+        }
+    }
+    Ok(())
 }
 
 fn main() -> anyhow::Result<()> {
@@ -111,7 +137,8 @@ fn main() -> anyhow::Result<()> {
     // was having trouble with this:
     // let mut display = Display7in5::default();
 
-    let mut show_ferris: bool = true;
+    let scenes = vec![Scene::Ferris, Scene::Hexagons, Scene::RandomNoise];
+    let mut current_scene_index = 0;
 
     log::info!("Starting main loop");
     let inactivity_timeout = 60_000;
@@ -154,22 +181,16 @@ fn main() -> anyhow::Result<()> {
 
                 log::info!("Button release ({duration}ms)");
 
-                if show_ferris {
-                    log::info!("Displaying Ferris");
-                    png::decode_and_center_png(
-                        &mut buffer,
-                        FERRIS_PNG,
-                        SCREEN_WIDTH,
-                        SCREEN_HEIGHT,
-                    )?;
-                } else {
-                    log::info!("Displaying random noise");
-                    draw_random_noise(&mut buffer);
-                }
-
-                show_ferris = !show_ferris;
+                let current_scene = &scenes[current_scene_index];
+                render_scene(current_scene, &mut buffer)?;
 
                 epd.update_and_display_frame(&mut spi_driver, &buffer, &mut delay)?;
+
+                current_scene_index = (current_scene_index + 1) % scenes.len();
+
+                log::info!("End loop, free heap: {} bytes", unsafe {
+                    esp_idf_sys::esp_get_free_heap_size()
+                });
             }
         }
     }
