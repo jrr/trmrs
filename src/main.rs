@@ -137,7 +137,7 @@ fn main() -> anyhow::Result<()> {
     // was having trouble with this:
     // let mut display = Display7in5::default();
 
-    let scenes = vec![Scene::Ferris, Scene::Hexagons, Scene::RandomNoise];
+    let scenes = [Scene::Ferris, Scene::Hexagons, Scene::RandomNoise];
     let mut current_scene_index = 0;
 
     log::info!("Starting main loop");
