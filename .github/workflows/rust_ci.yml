@@ -20,9 +20,6 @@ jobs:
         with:
           components: rust-src rustfmt clippy llvm-tools
 
-      - name: Enable caching
-        uses: Swatinem/rust-cache@v2
-
       - name: Install ldproxy
         run: cargo install ldproxy
 
