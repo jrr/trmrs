@@ -18,7 +18,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: nightly-2025-05-18
           components: rust-src rustfmt clippy llvm-tools
 
       - name: Enable caching
