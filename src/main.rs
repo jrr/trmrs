@@ -19,13 +19,15 @@ static BUTTON_EVENT_OCCURRED: AtomicBool = AtomicBool::new(false);
 static BUTTON_PRESS_TIME: AtomicI32 = AtomicI32::new(0);
 static LAST_ACTIVITY_TIME: AtomicI32 = AtomicI32::new(0);
 
-const FERRIS_PNG: &[u8] = include_bytes!("../ferris-floyd.png");
-const HEXAGONS_PNG: &[u8] = include_bytes!("../hexagons.png");
+const FERRIS_PNG: &[u8] = include_bytes!("../sample_images/ferris-floyd.png");
+const HEXAGONS_PNG: &[u8] = include_bytes!("../sample_images/hexagons.png");
+const SPECKLE_PNG: &[u8] = include_bytes!("../sample_images/speckle.png");
 
 #[derive(Debug, Clone)]
 enum Scene {
     Ferris,
     Hexagons,
+    SpecklePng,
     RandomNoise,
 }
 
@@ -44,6 +46,10 @@ fn render_scene(scene: &Scene, buffer: &mut [u8]) -> anyhow::Result<()> {
         Scene::Hexagons => {
             log::info!("Displaying Hexagons");
             png::decode_and_center_png(buffer, HEXAGONS_PNG, SCREEN_WIDTH, SCREEN_HEIGHT)?;
+        }
+        Scene::SpecklePng => {
+            log::info!("Displaying Speckle");
+            png::decode_and_center_png(buffer, SPECKLE_PNG, SCREEN_WIDTH, SCREEN_HEIGHT)?;
         }
         Scene::RandomNoise => {
             log::info!("Displaying random noise");
@@ -137,7 +143,12 @@ fn main() -> anyhow::Result<()> {
     // was having trouble with this:
     // let mut display = Display7in5::default();
 
-    let scenes = [Scene::Ferris, Scene::Hexagons, Scene::RandomNoise];
+    let scenes = [
+        Scene::Ferris,
+        Scene::Hexagons,
+        Scene::SpecklePng,
+        Scene::RandomNoise,
+    ];
     let mut current_scene_index = 0;
 
     log::info!("Starting main loop");
