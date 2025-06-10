@@ -3,6 +3,7 @@ use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, alway
 use std::thread;
 use std::time::Duration;
 
+mod draw;
 mod png;
 
 use esp_idf_hal::delay::Delay;
@@ -136,7 +137,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut buffer = vec![0u8; ((SCREEN_WIDTH * SCREEN_HEIGHT) / 8) as usize];
 
-    draw_random_noise(&mut buffer);
+    draw::draw_text(&mut buffer, "Hello, World!", SCREEN_WIDTH, SCREEN_HEIGHT);
 
     epd.update_and_display_frame(&mut spi_driver, &buffer, &mut delay)?;
 
