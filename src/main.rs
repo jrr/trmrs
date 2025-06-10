@@ -84,7 +84,7 @@ async fn main() -> anyhow::Result<()> {
     let wifi_status = if let (Some(ssid), Some(pass)) = (&wifi_ssid, &wifi_pass) {
         if !ssid.is_empty() && !pass.is_empty() {
             log::info!("WiFi: credentials found, initializing.");
-            log::info!("Wifi: connecting to SSID {:?}", wifi_ssid);
+            log::info!("Wifi: connecting to SSID {wifi_ssid:?}");
             let mut wifi = wifi::setup_wifi(peripherals.modem).await?;
             let ip = wifi::connect_wifi(&mut wifi, ssid, pass).await?;
             ip

@@ -35,7 +35,7 @@ pub async fn connect_wifi(
         ..Default::default()
     });
 
-    log::info!("Connecting to WiFi SSID: {}", ssid);
+    log::info!("Connecting to WiFi SSID: {ssid}");
 
     wifi.set_configuration(&wifi_configuration)?;
     wifi.start().await?;
