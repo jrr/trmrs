@@ -81,18 +81,21 @@ async fn main() -> anyhow::Result<()> {
     let wifi_ssid = option_env!("WIFI_SSID");
     let wifi_pass = option_env!("WIFI_PASS");
 
-    if let (Some(ssid), Some(pass)) = (&wifi_ssid, &wifi_pass) {
+    let wifi_status = if let (Some(ssid), Some(pass)) = (&wifi_ssid, &wifi_pass) {
         if !ssid.is_empty() && !pass.is_empty() {
             log::info!("WiFi: credentials found, initializing.");
             log::info!("Wifi: connecting to SSID {:?}", wifi_ssid);
             let mut wifi = wifi::setup_wifi(peripherals.modem).await?;
-            wifi::connect_wifi(&mut wifi, ssid, pass).await?;
+            let ip = wifi::connect_wifi(&mut wifi, ssid, pass).await?;
+            ip
         } else {
             log::info!("Skipping WiFi - credentials are empty");
+            "(empty wifi credentials)".to_string()
         }
     } else {
         log::info!("Skipping WiFi - credentials not provided");
-    }
+        "(no wifi credentials)".to_string()
+    };
 
     let mut button_pin = PinDriver::input(peripherals.pins.gpio2)?;
     button_pin.set_pull(Pull::Up)?;
@@ -155,7 +158,12 @@ async fn main() -> anyhow::Result<()> {
 
     let mut buffer = vec![0u8; ((SCREEN_WIDTH * SCREEN_HEIGHT) / 8) as usize];
 
-    draw::draw_text(&mut buffer, "Hello, World!", SCREEN_WIDTH, SCREEN_HEIGHT);
+    draw::draw_text(
+        &mut buffer,
+        &format!("Hello, World!\n{wifi_status}"),
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT,
+    );
 
     epd.update_and_display_frame(&mut spi_driver, &buffer, &mut delay)?;
 

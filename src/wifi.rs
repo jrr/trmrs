@@ -7,7 +7,6 @@ use esp_idf_svc::{
     wifi::{AsyncWifi, EspWifi},
 };
 
-
 pub async fn setup_wifi(modem: esp_idf_hal::modem::Modem) -> Result<AsyncWifi<EspWifi<'static>>> {
     let sys_loop = EspSystemEventLoop::take()?;
     let timer_service = EspTaskTimerService::new()?;
@@ -22,7 +21,11 @@ pub async fn setup_wifi(modem: esp_idf_hal::modem::Modem) -> Result<AsyncWifi<Es
     Ok(wifi)
 }
 
-pub async fn connect_wifi(wifi: &mut AsyncWifi<EspWifi<'static>>, ssid: &str, password: &str) -> Result<()> {
+pub async fn connect_wifi(
+    wifi: &mut AsyncWifi<EspWifi<'static>>,
+    ssid: &str,
+    password: &str,
+) -> Result<String> {
     let wifi_configuration = Configuration::Client(ClientConfiguration {
         ssid: ssid.try_into().unwrap(),
         bssid: None,
@@ -46,5 +49,5 @@ pub async fn connect_wifi(wifi: &mut AsyncWifi<EspWifi<'static>>, ssid: &str, pa
     let ip_info = wifi.wifi().sta_netif().get_ip_info()?;
     log::info!("WiFi connected! IP: {}", ip_info.ip);
 
-    Ok(())
+    Ok(ip_info.ip.to_string())
 }
