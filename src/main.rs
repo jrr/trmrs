@@ -155,6 +155,11 @@ fn main() -> anyhow::Result<()> {
     log::info!("Starting main loop");
     let inactivity_timeout = 60_000;
 
+    log::info!(
+        "Stack high-water: {} bytes",
+        unsafe { esp_idf_sys::uxTaskGetStackHighWaterMark(std::ptr::null_mut()) } * 4
+    );
+
     loop {
         thread::sleep(Duration::from_millis(200));
 
