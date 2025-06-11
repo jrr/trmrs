@@ -1,7 +1,12 @@
 [workspace]
 resolver = "3"
-members = ["device"]
+members = ["device","trmrs_core"]
 cargo-features = ["per-package-target"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.77"
 
 [profile.release]
 opt-level = "s"

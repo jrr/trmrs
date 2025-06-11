@@ -1589,7 +1589,12 @@ dependencies = [
  "log",
  "png",
  "rand",
+ "trmrs_core",
 ]
+
+[[package]]
+name = "trmrs_core"
+version = "0.1.0"
 
 [[package]]
 name = "uncased"
