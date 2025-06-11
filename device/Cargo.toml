@@ -1,20 +1,15 @@
+cargo-features = ["per-package-target"]
+
 [package]
 name = "trmrs-device"
 version = "0.1.0"
 edition = "2021"
-resolver = "2"
 rust-version = "1.77"
+default-target = "riscv32imc-esp-espidf"
 
 [[bin]]
 name = "trmrs-device"
 harness = false # do not use the built in cargo test harness -> resolve rust-analyzer errors
-
-[profile.release]
-opt-level = "s"
-
-[profile.dev]
-debug = true    # Symbols are nice and they don't increase the size on Flash
-opt-level = "z"
 
 [features]
 default = []
