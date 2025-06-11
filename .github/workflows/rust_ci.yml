@@ -27,7 +27,7 @@ jobs:
         run: cargo install cargo-binutils
 
       - name: cargo install
-        run: cargo install --path .
+        run: cargo install --path device
 
       - name: build (device)
         working-directory: device
@@ -59,7 +59,8 @@ jobs:
           components: rust-src rustfmt clippy llvm-tools
 
       - name: cargo install
-        run: cargo install --path .
+        run: |
+          cargo install --path cli
 
       - name: build (CLI)
         run: cargo build -p cli
