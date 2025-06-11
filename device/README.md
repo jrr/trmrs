@@ -21,7 +21,7 @@ cargo build
 Flash to the device:
 
 ```bash
-espflash flash target/riscv32imc-esp-espidf/debug/trmrs
+espflash flash target/riscv32imc-esp-espidf/debug/trmrs-device
 ```
 
 View serial output:
