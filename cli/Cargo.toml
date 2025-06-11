@@ -1,0 +1,19 @@
+[package]
+name = "cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "cli"
+path = "src/main.rs"
+
+[dependencies]
+trmrs_core = { path = "../trmrs_core" }
+clap = { version = "4.0", features = ["derive"] }
+anyhow = "1.0"
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
+log = "0.4"
+env_logger = "0.10"
+png = "0.17.16"
+rand = "0.9.1"

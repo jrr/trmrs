@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["device","trmrs_core"]
+members = ["device","cli","trmrs_core"]
 cargo-features = ["per-package-target"]
 
 [workspace.package]
