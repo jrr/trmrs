@@ -1,0 +1,32 @@
+cargo-features = ["per-package-target"]
+
+[package]
+name = "trmrs-device"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.77"
+default-target = "riscv32imc-esp-espidf"
+
+[[bin]]
+name = "trmrs-device"
+harness = false # do not use the built in cargo test harness -> resolve rust-analyzer errors
+
+[features]
+default = []
+
+experimental = ["esp-idf-svc/experimental"]
+
+[dependencies]
+trmrs_core = { path = "../trmrs_core" }
+log = "0.4"
+esp-idf-svc = { version = "0.51", features = ["critical-section", "embassy-time-driver", "embassy-sync"] }
+epd-waveshare = "0.6.0"
+esp-idf-hal = "0.45.2"
+esp-idf-sys = "0.36.1"
+embedded-graphics = "0.8.1"
+anyhow = "1.0.98"
+rand = "0.9.1"
+png = "0.17.16"
+
+[build-dependencies]
+embuild = "0.33"

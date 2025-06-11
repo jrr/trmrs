@@ -9,7 +9,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-test:
+  build-test-device:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -27,12 +27,14 @@ jobs:
         run: cargo install cargo-binutils
 
       - name: cargo install
-        run: cargo install --path .
+        run: cargo install --path device
 
-      - name: build
+      - name: build (device)
+        working-directory: device
         run: cargo build --release
 
       - name: report binary size
+        working-directory: device
         run: |
           cargo size --release > size_report.txt
           echo "## Size Report" >> $GITHUB_STEP_SUMMARY
@@ -41,8 +43,38 @@ jobs:
           echo \`\`\` >> $GITHUB_STEP_SUMMARY
           cat size_report.txt
 
+      - name: lint
+        working-directory: device
+        run: cargo clippy --no-deps -- -D warnings
+
+  build-test-other:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rust-src rustfmt clippy llvm-tools
+
+      - name: cargo install
+        run: |
+          cargo install --path cli
+
+      - name: build (CLI)
+        run: cargo build -p cli
+
+      - name: run (CLI)
+        run: cargo run -p cli
+
+      - name: run tests
+        run: cargo test -p trmrs_core
+
       - name: format
         run: cargo fmt --all -- --check --color always
 
       - name: lint
-        run: cargo clippy --no-deps -- -D warnings
+        run: |
+          cargo clippy -p trmrs_core --no-deps -- -D warnings
+          cargo clippy -p cli --no-deps -- -D warnings

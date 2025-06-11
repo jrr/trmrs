@@ -137,7 +137,8 @@ fn main() -> anyhow::Result<()> {
 
     let mut buffer = vec![0u8; ((SCREEN_WIDTH * SCREEN_HEIGHT) / 8) as usize];
 
-    draw::draw_text(&mut buffer, "Hello, World!", SCREEN_WIDTH, SCREEN_HEIGHT);
+    let core_message = trmrs_core::hello_world();
+    draw::draw_text(&mut buffer, &core_message, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     epd.update_and_display_frame(&mut spi_driver, &buffer, &mut delay)?;
 

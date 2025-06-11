@@ -15,17 +15,30 @@ For now you can press the button to alternate between displaying random noise an
 Build the project:
 
 ```bash
+cd device
 cargo build
 ```
 
 Flash to the device:
 
 ```bash
-espflash flash target/riscv32imc-esp-espidf/debug/trmrs
+espflash flash ../target/riscv32imc-esp-espidf/debug/trmrs-device
 ```
 
 View serial output:
 
 ```bash
 espflash monitor
+```
+
+Run CLI
+
+```bash
+cargo run -p cli
+```
+
+Run Tests
+
+```bash
+cargo test -p trmrs_core
 ```
