@@ -29,3 +29,15 @@ View serial output:
 ```bash
 espflash monitor
 ```
+
+Run CLI
+
+```bash
+cargo run -p cli
+```
+
+Run Tests
+
+```bash
+cargo test -p trmrs_core
+```
