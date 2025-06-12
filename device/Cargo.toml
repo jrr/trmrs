@@ -24,8 +24,10 @@ epd-waveshare = "0.6.0"
 esp-idf-hal = "0.45.2"
 esp-idf-sys = "0.36.1"
 embedded-graphics = "0.8.1"
+embedded-svc = "0.28"
 anyhow = "1.0.98"
 rand = "0.9.1"
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
 
 [build-dependencies]
 embuild = "0.33"
