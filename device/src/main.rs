@@ -26,6 +26,7 @@ const SPECKLE_PNG: &[u8] = include_bytes!("../sample_images/speckle.png");
 
 #[derive(Debug, Clone)]
 enum Scene {
+    Text,
     Ferris,
     Hexagons,
     SpecklePng,
@@ -40,6 +41,11 @@ fn draw_random_noise(buffer: &mut [u8]) {
 
 fn render_scene(scene: &Scene, buffer: &mut [u8]) -> anyhow::Result<()> {
     match scene {
+        Scene::Text => {
+            log::info!("Displaying text");
+            let core_message = trmrs_core::hello_world();
+            draw::draw_text(buffer, &core_message, SCREEN_WIDTH, SCREEN_HEIGHT);
+        }
         Scene::Ferris => {
             log::info!("Displaying Ferris");
             png::decode_and_center_png(buffer, FERRIS_PNG, SCREEN_WIDTH, SCREEN_HEIGHT)?;
@@ -137,21 +143,20 @@ fn main() -> anyhow::Result<()> {
 
     let mut buffer = vec![0u8; ((SCREEN_WIDTH * SCREEN_HEIGHT) / 8) as usize];
 
-    let core_message = trmrs_core::hello_world();
-    draw::draw_text(&mut buffer, &core_message, SCREEN_WIDTH, SCREEN_HEIGHT);
-
-    epd.update_and_display_frame(&mut spi_driver, &buffer, &mut delay)?;
-
     // was having trouble with this:
     // let mut display = Display7in5::default();
 
     let scenes = [
+        Scene::Text,
         Scene::Ferris,
         Scene::Hexagons,
         Scene::SpecklePng,
         Scene::RandomNoise,
     ];
     let mut current_scene_index = 0;
+
+    render_scene(&scenes[current_scene_index], &mut buffer)?;
+    epd.update_and_display_frame(&mut spi_driver, &buffer, &mut delay)?;
 
     log::info!("Starting main loop");
     let inactivity_timeout = 60_000;
@@ -199,12 +204,12 @@ fn main() -> anyhow::Result<()> {
 
                 log::info!("Button release ({duration}ms)");
 
+                current_scene_index = (current_scene_index + 1) % scenes.len();
+
                 let current_scene = &scenes[current_scene_index];
                 render_scene(current_scene, &mut buffer)?;
 
                 epd.update_and_display_frame(&mut spi_driver, &buffer, &mut delay)?;
-
-                current_scene_index = (current_scene_index + 1) % scenes.len();
 
                 log::info!("End loop, free heap: {} bytes", unsafe {
                     esp_idf_sys::esp_get_free_heap_size()
