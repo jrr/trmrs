@@ -5,6 +5,7 @@ use std::time::Duration;
 
 mod draw;
 use trmrs_core::dimensions::Dimensions;
+mod wifi;
 
 use esp_idf_hal::delay::Delay;
 use esp_idf_hal::gpio::*;
@@ -46,7 +47,9 @@ fn render_scene(scene: &Scene, buffer: &mut [u8]) -> anyhow::Result<()> {
     match scene {
         Scene::Text => {
             log::info!("Displaying text");
-            let core_message = trmrs_core::hello_world();
+            #[allow(static_mut_refs)]
+            let what: String = unsafe { WIFI_STATUS.clone() };
+            let core_message = trmrs_core::hello_world() + "\n" + &what;
             draw::draw_text(buffer, &core_message, SCREEN_DIMS.width, SCREEN_DIMS.height);
         }
         Scene::Ferris => {
@@ -69,7 +72,10 @@ fn render_scene(scene: &Scene, buffer: &mut [u8]) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn main() -> anyhow::Result<()> {
+static mut WIFI_STATUS: String = String::new();
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
     // implemented by esp-idf-sys might not link properly. See https://github.com/esp-rs/esp-idf-template/issues/71
     esp_idf_sys::link_patches();
@@ -84,6 +90,27 @@ fn main() -> anyhow::Result<()> {
     LAST_ACTIVITY_TIME.store(now, Ordering::SeqCst);
 
     let peripherals = Peripherals::take().unwrap();
+
+    let wifi_ssid = option_env!("WIFI_SSID");
+    let wifi_pass = option_env!("WIFI_PASS");
+
+    unsafe {
+        WIFI_STATUS = if let (Some(ssid), Some(pass)) = (&wifi_ssid, &wifi_pass) {
+            if !ssid.is_empty() && !pass.is_empty() {
+                log::info!("WiFi: credentials found, initializing.");
+                log::info!("Wifi: connecting to SSID {wifi_ssid:?}");
+                let mut wifi = wifi::setup_wifi(peripherals.modem).await?;
+                let ip = wifi::connect_wifi(&mut wifi, ssid, pass).await?;
+                ip
+            } else {
+                log::info!("Skipping WiFi - credentials are empty");
+                "(empty wifi credentials)".to_string()
+            }
+        } else {
+            log::info!("Skipping WiFi - credentials not provided");
+            "(no wifi credentials)".to_string()
+        };
+    }
 
     let mut button_pin = PinDriver::input(peripherals.pins.gpio2)?;
     button_pin.set_pull(Pull::Up)?;
