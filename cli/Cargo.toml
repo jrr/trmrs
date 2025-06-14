@@ -15,5 +15,4 @@ anyhow = "1.0"
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
 log = "0.4"
 env_logger = "0.10"
-png = "0.17.16"
 rand = "0.9.1"
