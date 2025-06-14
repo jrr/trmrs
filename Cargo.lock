@@ -1238,6 +1238,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
+name = "minipng"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44aaf824f3dbcc8a4ab8fd66964fed5200a632d5794775a2426e77e3833776a8"
+
+[[package]]
 name = "miniz_oxide"
 version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1827,7 +1833,6 @@ dependencies = [
  "esp-idf-svc",
  "esp-idf-sys",
  "log",
- "png",
  "rand",
  "trmrs_core",
 ]
@@ -1835,6 +1840,11 @@ dependencies = [
 [[package]]
 name = "trmrs_core"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "log",
+ "minipng",
+]
 
 [[package]]
 name = "uncased"

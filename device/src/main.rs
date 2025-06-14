@@ -4,7 +4,7 @@ use std::thread;
 use std::time::Duration;
 
 mod draw;
-mod png;
+use trmrs_core::dimensions::Dimensions;
 
 use esp_idf_hal::delay::Delay;
 use esp_idf_hal::gpio::*;
@@ -12,8 +12,11 @@ use esp_idf_hal::prelude::*;
 use esp_idf_hal::spi::{config::Config, SpiDeviceDriver, SpiDriverConfig};
 
 const PIN_BUTTON: i32 = 2;
-const SCREEN_WIDTH: u32 = 800;
-const SCREEN_HEIGHT: u32 = 480;
+
+const SCREEN_DIMS: Dimensions = Dimensions {
+    width: 800,
+    height: 480,
+};
 
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 static BUTTON_EVENT_OCCURRED: AtomicBool = AtomicBool::new(false);
@@ -44,19 +47,19 @@ fn render_scene(scene: &Scene, buffer: &mut [u8]) -> anyhow::Result<()> {
         Scene::Text => {
             log::info!("Displaying text");
             let core_message = trmrs_core::hello_world();
-            draw::draw_text(buffer, &core_message, SCREEN_WIDTH, SCREEN_HEIGHT);
+            draw::draw_text(buffer, &core_message, SCREEN_DIMS.width, SCREEN_DIMS.height);
         }
         Scene::Ferris => {
             log::info!("Displaying Ferris");
-            png::decode_and_center_png(buffer, FERRIS_PNG, SCREEN_WIDTH, SCREEN_HEIGHT)?;
+            trmrs_core::png::decode_and_center_png(buffer, FERRIS_PNG, SCREEN_DIMS)?;
         }
         Scene::Hexagons => {
             log::info!("Displaying Hexagons");
-            png::decode_and_center_png(buffer, HEXAGONS_PNG, SCREEN_WIDTH, SCREEN_HEIGHT)?;
+            trmrs_core::png::decode_and_center_png(buffer, HEXAGONS_PNG, SCREEN_DIMS)?;
         }
         Scene::SpecklePng => {
             log::info!("Displaying Speckle");
-            png::decode_and_center_png(buffer, SPECKLE_PNG, SCREEN_WIDTH, SCREEN_HEIGHT)?;
+            trmrs_core::png::decode_and_center_png(buffer, SPECKLE_PNG, SCREEN_DIMS)?;
         }
         Scene::RandomNoise => {
             log::info!("Displaying random noise");
@@ -141,7 +144,7 @@ fn main() -> anyhow::Result<()> {
     epd.clear_frame(&mut spi_driver, &mut delay)?;
     thread::sleep(Duration::from_millis(100));
 
-    let mut buffer = vec![0u8; ((SCREEN_WIDTH * SCREEN_HEIGHT) / 8) as usize];
+    let mut buffer = vec![0u8; (SCREEN_DIMS.area() / 8) as usize];
 
     // was having trouble with this:
     // let mut display = Display7in5::default();
