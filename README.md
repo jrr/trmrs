@@ -8,7 +8,7 @@ It's based on [esp-rs/esp-idf-template](https://github.com/esp-rs/esp-idf-templa
 
 For now you can press the button to alternate between displaying random noise and displaying an image, then it will go to sleep after a minute of inactivity.
 
-<center><img src="trmrs.jpg" width="50%" alt="device showing image of ferris" /></center>
+<center><img src="device/trmrs.jpg" width="50%" alt="device showing image of ferris" /></center>
 
 ## Building and Running
 
