@@ -12,3 +12,12 @@ set-nightly-version version:
 
 check-for-crate-updates:
     @cargo outdated --workspace --root-deps-only
+
+update-crates-within-range:
+    cargo update
+
+update-crates-compatible:
+    cargo upgrade
+
+update-crates-incompatible:
+    cargo upgrade --incompatible
