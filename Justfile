@@ -9,3 +9,6 @@ get-latest-nightly-version:
 
 set-nightly-version version:
 	@sed -i '' "s/^channel = \".*\"/channel = \"{{version}}\"/" rust-toolchain.toml
+
+check-for-crate-updates:
+    @cargo outdated --workspace --root-deps-only
