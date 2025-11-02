@@ -9,6 +9,6 @@ name = "trmrs_core"
 path = "src/lib.rs"
 
 [dependencies]
-minipng = "0.1.1"
+minipng = "1.0.0"
 anyhow = "1.0.100"
 log = "0.4"
