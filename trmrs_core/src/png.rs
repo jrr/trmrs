@@ -75,7 +75,7 @@ pub fn decode_and_center_png(
             let mut display_byte = !src_byte;
 
             // Handle the right edge (last byte in row) where we might need to mask out padding bits
-            if byte_x == bytes_per_row - 1 && image_size.width % 8 != 0 {
+            if byte_x == bytes_per_row - 1 && !image_size.width.is_multiple_of(8) {
                 // Calculate how many bits are padding in this byte
                 let padding_bits = 8 - (image_size.width % 8);
                 // Create a mask to clear padding bits (keep only actual image bits)

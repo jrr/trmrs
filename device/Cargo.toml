@@ -4,7 +4,7 @@ cargo-features = ["per-package-target"]
 name = "trmrs-device"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.77"
+rust-version.workspace = true
 default-target = "riscv32imc-esp-espidf"
 
 [[bin]]
@@ -19,7 +19,9 @@ experimental = ["esp-idf-svc/experimental"]
 [dependencies]
 trmrs_core = { path = "../trmrs_core" }
 log = "0.4"
-esp-idf-svc = { version = "0.51", features = ["critical-section", "embassy-time-driver", "embassy-sync"] }
+esp-idf-svc = { version = "0.51", features = ["embassy-time-driver", "embassy-sync"] }
+embassy-executor = { version = "0.7", features = ["executor-thread", "arch-std"] }
+critical-section = { version = "1.2", features = ["std"], default-features = false }
 epd-waveshare = "0.6.0"
 esp-idf-hal = "0.45.2"
 esp-idf-sys = "0.36.1"
