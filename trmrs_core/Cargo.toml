@@ -10,5 +10,5 @@ path = "src/lib.rs"
 
 [dependencies]
 minipng = "0.1.1"
-anyhow = "1.0.98"
+anyhow = "1.0.100"
 log = "0.4"
