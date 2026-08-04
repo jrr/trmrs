@@ -1,12 +1,13 @@
+cargo-features = ["per-package-target"]
+
 [workspace]
 resolver = "3"
 members = ["device","cli","trmrs_core"]
-cargo-features = ["per-package-target"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.93"
+rust-version = "1.98"
 
 [profile.release]
 opt-level = "s"
