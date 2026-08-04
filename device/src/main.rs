@@ -9,7 +9,7 @@ mod wifi;
 
 use esp_idf_hal::delay::Delay;
 use esp_idf_hal::gpio::*;
-use esp_idf_hal::prelude::*;
+use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::spi::{config::Config, SpiDeviceDriver, SpiDriverConfig};
 
 const PIN_BUTTON: i32 = 2;

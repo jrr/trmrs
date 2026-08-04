@@ -7,7 +7,9 @@ use esp_idf_svc::{
     wifi::{AsyncWifi, EspWifi},
 };
 
-pub async fn setup_wifi(modem: esp_idf_hal::modem::Modem) -> Result<AsyncWifi<EspWifi<'static>>> {
+pub async fn setup_wifi(
+    modem: esp_idf_hal::modem::Modem<'static>,
+) -> Result<AsyncWifi<EspWifi<'static>>> {
     let sys_loop = EspSystemEventLoop::take()?;
     let timer_service = EspTaskTimerService::new()?;
     let nvs = EspDefaultNvsPartition::take()?;
