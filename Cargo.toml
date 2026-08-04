@@ -7,7 +7,7 @@ members = ["device","cli","trmrs_core"]
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.98"
+rust-version = "1.99"
 
 [profile.release]
 opt-level = "s"
