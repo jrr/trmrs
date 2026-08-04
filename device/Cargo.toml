@@ -9,24 +9,19 @@ default-target = "riscv32imc-esp-espidf"
 
 [[bin]]
 name = "trmrs-device"
-harness = false # do not use the built in cargo test harness -> resolve rust-analyzer errors
-
-[features]
-default = []
-
-experimental = ["esp-idf-svc/experimental"]
+harness = false # do not use the built-in cargo test harness -> resolve rust-analyzer errors
 
 [dependencies]
 trmrs_core = { path = "../trmrs_core" }
 log = "0.4"
-esp-idf-svc = { version = "0.51", features = ["embassy-time-driver", "embassy-sync"] }
-embassy-executor = { version = "0.7", features = ["executor-thread", "arch-std"] }
+esp-idf-svc = { version = "0.52.1", features = ["embassy-time-driver", "embassy-sync"] }
+embassy-executor = { version = "0.10", features = ["executor-thread", "platform-std"] }
 critical-section = { version = "1.2", features = ["std"], default-features = false }
 epd-waveshare = "0.6.0"
-esp-idf-hal = "0.45.2"
-esp-idf-sys = "0.36.1"
+esp-idf-hal = "0.46.2"
+esp-idf-sys = "0.37.2"
 embedded-graphics = "0.8.1"
-embedded-svc = "0.28"
+embedded-svc = "0.29"
 anyhow = "1.0.100"
 rand = "0.9.2"
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }

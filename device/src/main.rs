@@ -1,5 +1,11 @@
 use epd_waveshare::{epd7in5_v2::*, prelude::*};
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
+
+// esp-idf-svc's `embassy-time-driver` pulls in embassy's integrated timer queue, whose
+// `__embassy_time_queue_item_from_waker` is defined in embassy-executor. We don't otherwise
+// name that crate, so without this rustc drops it and the symbol goes unresolved at link time.
+use embassy_executor as _;
+
 use std::thread;
 use std::time::Duration;
 
@@ -9,7 +15,7 @@ mod wifi;
 
 use esp_idf_hal::delay::Delay;
 use esp_idf_hal::gpio::*;
-use esp_idf_hal::prelude::*;
+use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::spi::{config::Config, SpiDeviceDriver, SpiDriverConfig};
 
 const PIN_BUTTON: i32 = 2;
@@ -112,8 +118,7 @@ async fn main() -> anyhow::Result<()> {
         };
     }
 
-    let mut button_pin = PinDriver::input(peripherals.pins.gpio2)?;
-    button_pin.set_pull(Pull::Up)?;
+    let mut button_pin = PinDriver::input(peripherals.pins.gpio2, Pull::Up)?;
 
     button_pin.set_interrupt_type(InterruptType::AnyEdge)?;
 
@@ -141,7 +146,8 @@ async fn main() -> anyhow::Result<()> {
 
     let rst = PinDriver::output(peripherals.pins.gpio10)?;
     let dc = PinDriver::output(peripherals.pins.gpio5)?;
-    let busy = PinDriver::input(peripherals.pins.gpio4)?;
+    // The display drives BUSY itself, so no internal pull.
+    let busy = PinDriver::input(peripherals.pins.gpio4, Pull::Floating)?;
     let _cs = PinDriver::output(peripherals.pins.gpio6)?;
 
     log::info!("SPI pins initialized");
